@@ -1,5 +1,5 @@
 from pprint import pprint
-
+import re
 #control signal formal
 #|RegDst|Jump |Brancheq|Branchneq|MemRead|MemtoReg|MemWrite|ALUSrc|RegWrite|ALUop|
 description_dict = {
@@ -21,20 +21,25 @@ description_dict = {
     'P': ('j',         '010000000000'),  # j
 }
 register_map={
-    '$zero':"000",
-    '$t0':"001",
-    '$t1':"010",
-    '$t2':"011",
-    '$t3':"100",
-    '$t4':"101",
-    '$sp':"110",
+    '$zero':"0000",
+    '$t0':"0001",
+    '$t1':"0010",
+    '$t2':"0011",
+    '$t3':"0100",
+    '$t4':"0101",
+    '$sp':"0110",
 }
 sequence='LODNPBMGAEHKFCIJ'
-
+symbol_table={}
 instructions={}
+opcode_map={}
+
+    
 for i in range(16):
     instructions[sequence[i]]=description_dict[sequence[i]]
-    
+
+for i,(opc,_) in enumerate(instructions.values()):
+    opcode_map[opc]=str(bin(i)[2:]).zfill(4)   
 # for i in instructions:
 #     print(f"{i}: {instructions[i][0]} - {instructions[i][1]}")
 
@@ -50,5 +55,138 @@ def control_signal(filename,seeTerminal=False):
 
 # a=hex(int('100000001010', 2))[2:]
 # print(a,a.upper().zfill(3))
+
+def clean_line(line):
+    line=line.split('#')[0]
+    return line.strip()
+
+def parse_label(line,pc,symbol_table,makeTable=True):
+    if ':' in line:
+        label,rest=line.split(':',1)
+        if makeTable:
+            symbol_table[label.strip()]=pc
+        
+        return rest.strip()
+    return line
+
+def tokenize_instruction(line):
+    tokens=re.split(r'[,\s]+',line)
+    return [t for t in tokens if t]   
+
+def parse_memory_operand(op) :
+    match=re.match(r'(-?\d+)\((\$[a-z0-9]+)\)',op)
+    
+    if not match:
+        raise ValueError("Invalid memory operand")
+    offset=int(match.group(1))
+    base=match.group(2)
+
+    return offset,base
+def get_register(reg):
+    if reg not in register_map:
+        raise ValueError(f"Unknown register {reg}")
+    
+    return register_map[reg]
+
+def parse_instruction(line):
+    tokens=tokenize_instruction(line)
+    
+    return {
+        "opcode":tokens[0],
+        "operands":tokens[1:]
+    }
+
+
+
+def build_symbol_table(file,symbol_table):
+    pc=0
+    for line in file:
+        line=clean_line(line)
+        if not line:
+           continue
+        line=parse_label(line,pc,symbol_table)#build table
+        if not line:
+            continue
+        inst=parse_instruction(line=line)
+        if inst:
+            pc+=1
+         
+        
+def encode_instruction(srcfile,outfile,symbol_table):
+        outfile.write("v2.0 raw\n")
+        pc=0
+    
+        for line in srcfile:
+            
+            line=clean_line(line)
+            if not line:
+                continue
+            line=parse_label(line,pc,symbol_table,makeTable=False)#build table
+            if not line:
+                    continue    
+        
+            result=parse_instruction(line=line)
+            out=''
+            if not result:
+                continue
+            opcode, instruction = result["opcode"], result["operands"]
+            
+                
+            if opcode in R_TYPE:
+                out=opcode_map[opcode]+get_register(instruction[1])+get_register(instruction[2])+get_register(instruction[0])
+            
+            elif opcode in S_TYPE or opcode in I_TYPE:
+                out=opcode_map[opcode]+get_register(instruction[1])+get_register(instruction[0])+cnvrt_bin(instruction[2]) # sh_amnt
+          
+            elif opcode in M_TYPE:
+                offset,base=parse_memory_operand(instruction[1])
+                out=opcode_map[opcode]+get_register(base)+get_register(instruction[0])+cnvrt_bin(offset)
+            elif opcode in B_TYPE:
+                offset=symbol_table[instruction[2].strip()]-(pc+1)
+                out=opcode_map[opcode]+get_register(instruction[0])+get_register(instruction[1])+cnvrt_bin(offset)
+            elif opcode in J_TYPE: #direct jump to 8 bit address
+               out=opcode_map[opcode]+cnvrt_bin(symbol_table[instruction[0].strip()],8)+"0000"
+            #    print(out,opcode,instruction[0])
+            pc+=1
+            if out:
+                hex_instr= hex(int(out, 2))[2:].zfill(4)
+                outfile.write(hex_instr+'\n')
+            
+   
+        
+R_TYPE=['add','sub','and','or','nor']
+S_TYPE=['sll','srl']
+I_TYPE=['addi','subi','ori','andi']
+B_TYPE=['beq','bneq']
+M_TYPE=['lw','sw']
+J_TYPE=['j']
+
+def cnvrt_bin(value, bits=4):
+    value = int(value)
+
+    # signed range check
+    if value < -(1 << (bits-1)) or value > (1 << (bits-1)) - 1:
+        raise ValueError(f"{value} out of {bits}-bit signed range")
+
+    # two's complement conversion
+    value = value & ((1 << bits) - 1)
+
+    return format(value, f'0{bits}b')
+
+
+        
+# def process_line()
+def mips_to_machine(sourceFile,outFile):
+    with open(sourceFile,'r') as srcfile,open(outFile,'w')as outfile:
+        # outfile.write("v2.0 raw\n")
+         build_symbol_table(srcfile,symbol_table)
+         srcfile.seek(0)
+         encode_instruction(srcfile,outfile,symbol_table)      
+            
+                    
+        
 if __name__ == "__main__":
-    control_signal('control_signal.hex', seeTerminal=True)
+    # control_signal('control_signal.hex', seeTerminal=True)
+    mips_to_machine(sourceFile="source.asm",outFile="instruction.hex")
+    # print(instructions)
+    # print(opcode_map)
