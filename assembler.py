@@ -108,8 +108,13 @@ def build_symbol_table(file,symbol_table):
         if not line:
             continue
         inst=parse_instruction(line=line)
-        if inst:
-            pc+=1
+        inst = parse_instruction(line)
+        opcode = inst["opcode"]
+
+        if opcode in ['push', 'pop']:
+            pc += 2      # pseudo instruction expands to 2 instructions
+        else:
+            pc += 1
          
         
 def encode_instruction(srcfile,outfile,symbol_table):
@@ -147,6 +152,33 @@ def encode_instruction(srcfile,outfile,symbol_table):
             elif opcode in J_TYPE: #direct jump to 8 bit address
                out=opcode_map[opcode]+cnvrt_bin(symbol_table[instruction[0].strip()],8)+"0000"
             #    print(out,opcode,instruction[0])
+            elif opcode == 'push':
+                reg = instruction[0]
+
+                # addi $sp,$sp,-1
+                out1 = opcode_map['addi'] + get_register('$sp') + get_register('$sp') + cnvrt_bin(-1)
+
+                   # sw reg,0($sp)
+                out2 = opcode_map['sw'] + get_register('$sp') + get_register(reg) + cnvrt_bin(0)
+
+                outfile.write(hex(int(out1,2))[2:].zfill(4) + '\n')
+                outfile.write(hex(int(out2,2))[2:].zfill(4) + '\n')
+
+                pc += 2
+                continue
+            elif opcode=='pop':
+                reg=instruction[0]
+                
+                #lw reg,0($sp)
+                out1=opcode_map['lw']+get_register('$sp')+get_register(reg)+cnvrt_bin(0)
+                
+                #addi $sp,$sp,1
+                out2=opcode_map['addi'] + get_register('$sp') + get_register('$sp') + cnvrt_bin(-1)
+                outfile.write(hex(int(out1,2))[2:].zfill(4) + '\n')
+                outfile.write(hex(int(out2,2))[2:].zfill(4) + '\n')
+                pc+2
+                continue
+                
             pc+=1
             if out:
                 hex_instr= hex(int(out, 2))[2:].zfill(4)
