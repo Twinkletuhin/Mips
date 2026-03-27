@@ -176,7 +176,7 @@ def encode_instruction(srcfile,outfile,symbol_table):
                 out2=opcode_map['addi'] + get_register('$sp') + get_register('$sp') + cnvrt_bin(-1)
                 outfile.write(hex(int(out1,2))[2:].zfill(4) + '\n')
                 outfile.write(hex(int(out2,2))[2:].zfill(4) + '\n')
-                pc+2
+                pc+=2
                 continue
                 
             pc+=1
