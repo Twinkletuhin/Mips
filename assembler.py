@@ -34,7 +34,13 @@ symbol_table={}
 instructions={}
 opcode_map={}
 
-    
+R_TYPE=['add','sub','and','or','nor']
+S_TYPE=['sll','srl']
+I_TYPE=['addi','subi','ori','andi']
+B_TYPE=['beq','bneq']
+M_TYPE=['lw','sw']
+J_TYPE=['j']
+
 for i in range(16):
     instructions[sequence[i]]=description_dict[sequence[i]]
 
@@ -122,8 +128,10 @@ def encode_instruction(srcfile,outfile,symbol_table):
         pc=0
     
         for line in srcfile:
-            
+            # print('Before clean', line)
             line=clean_line(line)
+            # print('After clean', line)
+            # continue
             if not line:
                 continue
             line=parse_label(line,pc,symbol_table,makeTable=False)#build table
@@ -140,8 +148,13 @@ def encode_instruction(srcfile,outfile,symbol_table):
             if opcode in R_TYPE:
                 out=opcode_map[opcode]+get_register(instruction[1])+get_register(instruction[2])+get_register(instruction[0])
             
-            elif opcode in S_TYPE or opcode in I_TYPE:
-                out=opcode_map[opcode]+get_register(instruction[1])+get_register(instruction[0])+cnvrt_bin(instruction[2]) # sh_amnt
+            elif opcode in S_TYPE:
+                # print(opcode,instruction,cnvrt_bin(instruction[2],4,False))
+                out=opcode_map[opcode]+get_register(instruction[1])+get_register(instruction[0])+cnvrt_bin(instruction[2],4,False) # sh_amnt
+                
+                
+            elif opcode  in I_TYPE:
+                out=opcode_map[opcode]+get_register(instruction[1])+get_register(instruction[0])+cnvrt_bin(instruction[2]) #immediate
           
             elif opcode in M_TYPE:
                 offset,base=parse_memory_operand(instruction[1])
@@ -186,18 +199,12 @@ def encode_instruction(srcfile,outfile,symbol_table):
             
    
         
-R_TYPE=['add','sub','and','or','nor']
-S_TYPE=['sll','srl']
-I_TYPE=['addi','subi','ori','andi']
-B_TYPE=['beq','bneq']
-M_TYPE=['lw','sw']
-J_TYPE=['j']
 
-def cnvrt_bin(value, bits=4):
+def cnvrt_bin(value, bits=4,signed=True):
     value = int(value)
 
     # signed range check
-    if value < -(1 << (bits-1)) or value > (1 << (bits-1)) - 1:
+    if signed and  (value < -(1 << (bits-1)) or value > (1 << (bits-1)) - 1):
         raise ValueError(f"{value} out of {bits}-bit signed range")
 
     # two's complement conversion
