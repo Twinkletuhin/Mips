@@ -186,7 +186,7 @@ def encode_instruction(srcfile,outfile,symbol_table):
                 out1=opcode_map['lw']+get_register('$sp')+get_register(reg)+cnvrt_bin(0)
                 
                 #addi $sp,$sp,1
-                out2=opcode_map['addi'] + get_register('$sp') + get_register('$sp') + cnvrt_bin(-1)
+                out2=opcode_map['addi'] + get_register('$sp') + get_register('$sp') + cnvrt_bin(1)
                 outfile.write(hex(int(out1,2))[2:].zfill(4) + '\n')
                 outfile.write(hex(int(out2,2))[2:].zfill(4) + '\n')
                 pc+=2
@@ -225,7 +225,7 @@ def mips_to_machine(sourceFile,outFile):
                     
         
 if __name__ == "__main__":
-    # control_signal('control_signal.hex', seeTerminal=True)
+    control_signal('control_signal.hex', seeTerminal=False)
     mips_to_machine(sourceFile="source.asm",outFile="instruction.hex")
     # print(instructions)
     # print(opcode_map)
