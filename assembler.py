@@ -161,7 +161,10 @@ def encode_instruction(srcfile,outfile,symbol_table):
                 out=opcode_map[opcode]+get_register(base)+get_register(instruction[0])+cnvrt_bin(offset)
             elif opcode in B_TYPE:
                 offset=symbol_table[instruction[2].strip()]-(pc+1)
-                out=opcode_map[opcode]+get_register(instruction[0])+get_register(instruction[1])+cnvrt_bin(offset)
+                bin_offset=cnvrt_bin(offset,4,True)
+                print(opcode,instruction,'offset:',offset,'bin_offset:',bin_offset,symbol_table[instruction[2].strip()],'pc=',pc)
+                out=opcode_map[opcode]+get_register(instruction[0])+get_register(instruction[1])+cnvrt_bin(offset,4,True) # branch offset
+                print(len(out),hex(int(out, 2))[2:].zfill(4))
             elif opcode in J_TYPE: #direct jump to 8 bit address
                out=opcode_map[opcode]+cnvrt_bin(symbol_table[instruction[0].strip()],8)+"0000"
             #    print(out,opcode,instruction[0])
@@ -219,6 +222,7 @@ def mips_to_machine(sourceFile,outFile):
     with open(sourceFile,'r') as srcfile,open(outFile,'w')as outfile:
         # outfile.write("v2.0 raw\n")
          build_symbol_table(srcfile,symbol_table)
+         print("Symbol Table:", symbol_table)
          srcfile.seek(0)
          encode_instruction(srcfile,outfile,symbol_table)      
             
@@ -227,5 +231,6 @@ def mips_to_machine(sourceFile,outFile):
 if __name__ == "__main__":
     control_signal('control_signal.hex', seeTerminal=False)
     mips_to_machine(sourceFile="source.asm",outFile="instruction.hex")
+    
     # print(instructions)
     # print(opcode_map)

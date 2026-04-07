@@ -1,98 +1,37 @@
-# ---------------------------
-# Register Initialization
-# ---------------------------
+addi $t1, $zero, 1        #00000000  $t1 = 1
+addi $t2, $zero, 3        #00000001  $t2 = 3
+add  $t0, $t1, $t2        #00000010  $t0 = 4
+add  $t3, $t0, $t2        #00000011  $t3 = 7
+add  $t4, $t0, $t1        #00000100  $t4 = 5
+sw   $t1, 3($t2)          #00000101  mem[6] = 1
+sll  $t1, $t1, 2          #00000110  $t1 = 4
+beq  $t0, $t1, label1     #00000111  branch taken
+j    end                  #00001000  (skipped)
 
-# addi $t0, $zero, 3      # t0 = 3
-# addi $t1, $zero, 1      # t1 = 1
-# addi $t2, $zero, 2      # t2 = 2
-# addi $t3, $zero, 4      # t3 = 4
-# addi $t4, $zero, 0      # t4 = 0
+label1:
+sub  $t4, $t3, $t0        #00001001  $t4 = 3
+subi $t3, $t3, 1          #00001010  $t3 = 6
+srl  $t3, $t3, 1          #00001011  $t3 = 3
+lw   $t1, 3($t2)          #00001100  $t1 = 1
+and  $t0, $t1, $t3        #00001101  $t0 = 1
+or   $t1, $t3, $t4        #00001110  $t1 = 3
+j    label2               #00001111  jump
 
-# ---------------------------
-# R-TYPE ARITHMETIC
-# ---------------------------
+label3:
+push $t0                  #00010000 00010001  mem[FF] = 1
+push $t1                  #00010010 00010011  mem[FE] = 3
+ori  $t0, $t0, 4          #00010100  $t0 = 5
+pop  $t0                  #00010101 00010110  $t0 = 3
+andi $t2, $t2, 0          #00010111  $t2 = 0
+pop  $t2                  #00011000 00011001  $t2 = 1
+nor  $t2, $t2, $t2        #00011010  $t2 = -2
+j    end                  #00011011
 
-# add $t4, $t0, $t1       # t4 = 3 + 1 = 4
-# sub $t4, $t0, $t1       # t4 = 3 - 1 = 2
+label2:
+bneq $t0, $t2, near_label #00011100  branch taken
+j    end                  #00011101  (skipped)
 
-# ---------------------------
-# LOGIC
-# ---------------------------
+near_label:
+j    label3               #00011110  jump
 
-# and $t4, $t0, $t2       # t4 = 3 & 2
-# or  $t4, $t0, $t1       # t4 = 3 | 1
-# nor $t4, $t0, $t1       # t4 = ~(3|1)
-
-# ---------------------------
-# IMMEDIATE INSTRUCTIONS
-# ---------------------------
-
-# addi $t0, $t0, 1        # t0 = t0 + 1
-# subi $t0, $t0, 1        # t0 = t0 - 1
-# andi $t1, $t0, 2        # t1 = t0 & 2
-# ori  $t1, $t1, 1        # t1 = t1 | 1
-
-# ---------------------------
-# SHIFT
-# ---------------------------
-
-# sll $t2, $t1, 1         # t2 = t1 << 1
-# srl $t2, $t2, 1         # t2 = t2 >> 1
-
-# ---------------------------
-# MEMORY OPERATIONS
-# ---------------------------
-
-# addi $sp, $sp, -1      # initialize stack pointer
-
-# sw $t1, 0($sp)          # MEM[sp] = t0
-# lw $t2, 0($sp)          # t3 = MEM[sp]
-
-# ---------------------------
-# STACK OPERATIONS
-# ---------------------------
-
-# push $t1                # push t1
-# push $t2                # push t2
-
-# pop $t4                 # t4 = top
-# pop $t3                 # t3 = next
-
-# ---------------------------
-# BRANCH TEST
-# ---------------------------
-
-# addi $t0, $zero, 2
-# addi $t1, $zero, 2
-
-# beq $t0, $t1, equal_label   # branch taken
-
-# addi $t2, $zero, 3          # skipped
-
-# equal_label:
-# addi $t2, $zero, 7
-
-# # ---------------------------
-# # BNE TEST
-# # ---------------------------
-
-# addi $t0, $zero,3
-# addi $t1, $zero, 3
-
-# bneq $t0, $t1, notequal
-
-# addi $t3, $zero, 7          # skipped
-
-# notequal:
-# addi $t3, $zero, 6
-
-# # ---------------------------
-# # JUMP TEST
-# # ---------------------------
-
-j end_program
-
-addi $t4, $zero, 5          # skipped
-
-end_program:
-addi $t4, $zero, 4
+end:
